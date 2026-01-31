@@ -1,0 +1,44 @@
+# ===================================
+# .gitignore - Infrastructure
+# ===================================
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfstate.*.backup
+**/.terraform.tfstate.lock.info
+**/tfplan
+**/tfplan.binary
+**/*.tfvars
+!**/*.tfvars.example
+**/.terraformrc
+**/terraform.rc
+**/crash.log
+**/crash.*.log
+
+# Ansible
+**/inventory/hosts
+!**/inventory/.gitkeep
+**/*.retry
+**/ansible_facts/
+**/.ansible/
+
+# SSH Keys
+**/*.pem
+**/*.key
+**/id_rsa*
+**/.ssh/
+
+# Local files
+**/deployment-outputs.json
+**/*.log
+**/*.bak
+**/*.swp
+**/*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

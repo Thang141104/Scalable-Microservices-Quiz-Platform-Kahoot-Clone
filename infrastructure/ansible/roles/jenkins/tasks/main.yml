@@ -1,0 +1,192 @@
+# ============================================
+# Jenkins Role - Main Tasks
+# ============================================
+---
+- name: Remove duplicate Docker repo lines
+  lineinfile:
+    path: /etc/apt/sources.list.d/download_docker_com_linux_ubuntu.list
+    regexp: '^deb .*$'
+    state: absent
+  become: yes
+  ignore_errors: yes
+- name: Install Java {{ java_version }}
+  apt:
+    name: "openjdk-{{ java_version }}-jdk"
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Create keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Download Jenkins GPG key
+  get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    dest: /tmp/jenkins.key
+    mode: '0644'
+    timeout: 60
+  retries: 3
+  delay: 5
+
+- name: Add Jenkins GPG key
+  shell: |
+    cat /tmp/jenkins.key | gpg --dearmor -o /etc/apt/keyrings/jenkins.gpg
+  args:
+    creates: /etc/apt/keyrings/jenkins.gpg
+  become: yes
+
+- name: Add Jenkins repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/jenkins.gpg] https://pkg.jenkins.io/debian-stable binary/"
+    state: present
+  become: yes
+
+- name: Install Jenkins
+  apt:
+    name: jenkins
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Install Node.js
+  include_tasks: nodejs.yml
+
+- name: Install AWS CLI
+  include_tasks: awscli.yml
+
+- name: Install kubectl
+  include_tasks: kubectl.yml
+
+- name: Install Trivy
+  include_tasks: trivy.yml
+
+- name: Install SonarQube Scanner
+  include_tasks: sonar-scanner.yml
+
+- name: Install Nx CLI
+  include_tasks: nx.yml
+
+- name: Create Jenkins .kube directory
+  file:
+    path: /var/lib/jenkins/.kube
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Create Jenkins scripts directory
+  file:
+    path: /var/lib/jenkins/scripts
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Configure Jenkins systemd service
+  template:
+    src: jenkins.service.j2
+    dest: /etc/systemd/system/jenkins.service
+    mode: '0644'
+  become: yes
+  notify: restart jenkins
+
+- name: Enable and start Jenkins
+  systemd:
+    name: jenkins
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes
+
+- name: Wait for Jenkins to start
+  wait_for:
+    port: 8080
+    delay: 10
+    timeout: 300
+
+# System Optimizations for t3.medium
+- name: Configure Jenkins JVM settings
+  lineinfile:
+    path: /etc/default/jenkins
+    regexp: '^JAVA_ARGS='
+    line: 'JAVA_ARGS="{{ jenkins_java_opts }}"'
+    state: present
+  become: yes
+  notify: restart jenkins
+
+- name: Configure Jenkins disk space threshold
+  lineinfile:
+    path: /etc/default/jenkins
+    line: 'JENKINS_ARGS="${JENKINS_ARGS} {{ jenkins_args }}"'
+    insertafter: EOF
+    state: present
+  become: yes
+
+- name: Optimize system memory (reduce swappiness)
+  sysctl:
+    name: vm.swappiness
+    value: '10'
+    sysctl_set: yes
+    state: present
+  become: yes
+
+- name: Increase file descriptors for Jenkins (soft)
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: 'jenkins  soft  nofile  65536'
+    insertbefore: '^# End of file'
+    state: present
+  become: yes
+
+- name: Increase file descriptors for Jenkins (hard)
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: 'jenkins  hard  nofile  65536'
+    insertbefore: '^# End of file'
+    state: present
+  become: yes
+
+- name: Optimize npm for builds
+  shell: |
+    npm config set maxsockets 2
+    npm config set fetch-timeout 120000
+    npm config set fetch-retry-mintimeout 20000
+    npm config set fetch-retry-maxtimeout 120000
+  become: yes
+  become_user: jenkins
+  ignore_errors: yes
+
+- name: Create Jenkins workspace cleanup script
+  copy:
+    dest: /etc/cron.daily/jenkins-cleanup
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      # Clean Jenkins workspace older than 7 days
+      find /var/lib/jenkins/workspace -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+      # Clean Jenkins build artifacts older than 30 days
+      find /var/lib/jenkins/jobs/*/builds -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
+  become: yes
+
+- name: Get Jenkins initial password
+  slurp:
+    src: /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_initial_password
+  become: yes
+  ignore_errors: yes
+
+- name: Display Jenkins initial password
+  debug:
+    msg: "Jenkins initial password: {{ jenkins_initial_password.content | b64decode }}"
+  when: jenkins_initial_password is succeeded
+
+- name: Install Jenkins plugins
+  include_tasks: plugins.yml
+- name: Setup Nx for Jenkins
+  include_tasks: nx.yml

@@ -1,0 +1,64 @@
+# ============================================
+# Jenkins Role - Install SonarQube Scanner
+# ============================================
+---
+- name: Download SonarQube Scanner
+  get_url:
+    url: "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-{{ jenkins_sonar_scanner_version }}-linux.zip"
+    dest: /tmp/sonar-scanner.zip
+    mode: '0644'
+    timeout: 120
+  retries: 3
+  delay: 10
+
+- name: Create SonarQube Scanner directory
+  file:
+    path: /opt/sonar-scanner
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Unzip SonarQube Scanner
+  unarchive:
+    src: /tmp/sonar-scanner.zip
+    dest: /opt
+    remote_src: yes
+  become: yes
+
+- name: Find extracted directory
+  find:
+    paths: /opt
+    patterns: "sonar-scanner-*"
+    file_type: directory
+  register: sonar_dir
+
+- name: Move contents to sonar-scanner directory
+  shell: |
+    if [ -d "{{ sonar_dir.files[0].path }}" ]; then
+      rm -rf /opt/sonar-scanner/*
+      mv {{ sonar_dir.files[0].path }}/* /opt/sonar-scanner/
+      rm -rf {{ sonar_dir.files[0].path }}
+    fi
+  become: yes
+  when: sonar_dir.matched > 0
+
+- name: Create symbolic link for sonar-scanner
+  file:
+    src: /opt/sonar-scanner/bin/sonar-scanner
+    dest: /usr/local/bin/sonar-scanner
+    state: link
+  become: yes
+
+- name: Clean up SonarQube Scanner download
+  file:
+    path: /tmp/sonar-scanner.zip
+    state: absent
+
+- name: Verify SonarQube Scanner installation
+  command: sonar-scanner --version
+  register: sonar_version
+  changed_when: false
+
+- name: Display SonarQube Scanner version
+  debug:
+    msg: "SonarQube Scanner version: {{ sonar_version.stdout }}"

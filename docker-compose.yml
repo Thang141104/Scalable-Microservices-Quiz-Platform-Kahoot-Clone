@@ -1,0 +1,170 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./gateway
+    container_name: kahoot-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - QUIZ_SERVICE_URL=http://quiz-service:3002
+      - GAME_SERVICE_URL=http://game-service:3003
+      - USER_SERVICE_URL=http://user-service:3004
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3005
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    depends_on:
+      - auth-service
+      - quiz-service
+      - game-service
+      - user-service
+      - analytics-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: kahoot-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=7d
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - OTP_EXPIRES_IN=10
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  quiz-service:
+    build: ./services/quiz-service
+    container_name: kahoot-quiz-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - quiz-uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  game-service:
+    build: ./services/game-service
+    container_name: kahoot-game-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3005
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  user-service:
+    build: ./services/user-service
+    container_name: kahoot-user-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - user-uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  analytics-service:
+    build: ./services/analytics-service
+    container_name: kahoot-analytics-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build: ./frontend
+    container_name: kahoot-frontend
+    ports:
+      - "3006:3006"
+      - "80:3006"
+    environment:
+      - PORT=3006
+      - REACT_APP_API_URL=http://localhost:3000
+      - REACT_APP_SOCKET_URL=http://localhost:3003
+    restart: unless-stopped
+    networks:
+      - kahoot-network
+    depends_on:
+      - gateway
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3006"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  kahoot-network:
+    driver: bridge
+
+volumes:
+  quiz-uploads:
+  user-uploads:

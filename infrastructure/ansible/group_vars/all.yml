@@ -1,0 +1,24 @@
+---
+# ===================================
+# All Hosts Variables
+# ===================================
+
+# Ansible connection
+ansible_user: ubuntu
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+ansible_python_interpreter: /usr/bin/python3
+
+# Project configuration
+project_name: kahoot-clone
+aws_region: us-east-1
+
+# Kubernetes version (from old k8s-setup.yml)
+k8s_version: "1.28"
+pod_network_cidr: "192.168.0.0/16"  # Calico network CIDR
+
+# Docker configuration
+docker_buildkit_enabled: true
+
+# GitHub repository (from old terraform.tfvars)
+github_repo: "https://github.com/Thang141104/DevOps-Kahoot-Clone.git"
+github_branch: "fix/auth-routing-issues"

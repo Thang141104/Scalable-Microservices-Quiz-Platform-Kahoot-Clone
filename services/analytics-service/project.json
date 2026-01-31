@@ -1,0 +1,17 @@
+{
+  "name": "analytics-service",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/analytics-service",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:node",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/services/analytics-service",
+        "main": "services/analytics-service/server.js"
+      }
+    }
+  },
+  "tags": ["scope:analytics", "type:service"]
+}

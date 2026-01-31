@@ -1,0 +1,12 @@
+# ============================================
+# Group Variables - Jenkins
+# ============================================
+---
+# Jenkins configuration
+jenkins_port: 8080
+jenkins_java_opts: "-Xmx2048m -Xms1024m"
+
+# Docker configuration for Jenkins
+docker_users:
+  - ubuntu
+  - jenkins

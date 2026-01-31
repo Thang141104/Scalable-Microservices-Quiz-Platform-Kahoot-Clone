@@ -1,0 +1,18 @@
+{
+  "log-driver": "{{ docker_daemon_config['log-driver'] }}",
+  "log-opts": {
+    "max-size": "{{ docker_daemon_config['log-opts']['max-size'] }}",
+    "max-file": "{{ docker_daemon_config['log-opts']['max-file'] }}"
+  },
+  "storage-driver": "{{ docker_daemon_config['storage-driver'] }}",
+  "features": {
+    "buildkit": {{ docker_daemon_config.features.buildkit | lower }}
+  },
+  "default-ulimits": {
+    "nofile": {
+      "Name": "nofile",
+      "Hard": {{ docker_daemon_config['default-ulimits'].nofile.Hard }},
+      "Soft": {{ docker_daemon_config['default-ulimits'].nofile.Soft }}
+    }
+  }
+}

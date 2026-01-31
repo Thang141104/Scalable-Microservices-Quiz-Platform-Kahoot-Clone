@@ -1,0 +1,10 @@
+---
+# ============================================
+# Common Role - Handlers
+# ============================================
+
+- name: restart timesyncd
+  systemd:
+    name: systemd-timesyncd
+    state: restarted
+  become: yes

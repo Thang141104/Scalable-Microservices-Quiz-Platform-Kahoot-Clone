@@ -1,0 +1,41 @@
+# ============================================
+# Common Role - Variables
+# ============================================
+---
+# Packages
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - unzip
+  - software-properties-common
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+# Timezone
+common_timezone: "Asia/Ho_Chi_Minh"
+
+# Directories
+common_directories:
+  - /opt/scripts
+  - /opt/backups
+  - /var/log/custom
+
+# System settings
+common_upgrade_packages: false
+common_configure_ntp: true
+common_configure_firewall: false
+common_set_hostname: true
+common_update_hosts: true
+
+# Sysctl parameters
+common_sysctl_params:
+  net.ipv4.ip_forward: 1
+  net.ipv4.conf.all.forwarding: 1
+  fs.file-max: 65536
+  vm.swappiness: 10

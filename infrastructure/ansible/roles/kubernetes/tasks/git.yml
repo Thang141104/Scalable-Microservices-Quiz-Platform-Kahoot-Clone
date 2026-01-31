@@ -1,0 +1,38 @@
+# ============================================
+# Kubernetes Master - Install and Configure Git
+# ============================================
+---
+- name: Install Git
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Configure Git for ubuntu user
+  become: yes
+  become_user: ubuntu
+  git_config:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    scope: global
+  loop:
+    - { name: 'user.email', value: 'k8s-master@kahoot-clone.local' }
+    - { name: 'user.name', value: 'K8s Master' }
+
+- name: Ensure .ssh directory exists for ubuntu user
+  file:
+    path: /home/ubuntu/.ssh
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0700'
+  become: yes
+
+- name: Create known_hosts file for GitHub
+  become: yes
+  become_user: ubuntu
+  shell: |
+    ssh-keyscan github.com >> /home/ubuntu/.ssh/known_hosts
+  args:
+    creates: /home/ubuntu/.ssh/known_hosts

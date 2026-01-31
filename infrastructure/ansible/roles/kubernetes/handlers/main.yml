@@ -1,0 +1,16 @@
+# ============================================
+# Kubernetes Role - Handlers
+# ============================================
+---
+- name: restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: yes
+  become: yes
+
+- name: restart kubelet
+  systemd:
+    name: kubelet
+    state: restarted
+  become: yes

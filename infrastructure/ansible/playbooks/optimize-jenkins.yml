@@ -1,0 +1,127 @@
+---
+# ============================================
+# Optimize Jenkins for t3.medium Instance
+# ============================================
+# This playbook optimizes Jenkins configuration
+# for resource-constrained environments
+# ============================================
+
+- name: Optimize Jenkins for t3.medium
+  hosts: jenkins
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Get current Jenkins memory settings
+      shell: cat /etc/default/jenkins | grep JAVA_ARGS || echo "Not set"
+      register: current_jenkins_config
+      changed_when: false
+
+    - name: Show current Jenkins config
+      debug:
+        msg: "Current Jenkins memory: {{ current_jenkins_config.stdout }}"
+
+    - name: Optimize Jenkins JVM settings for 4GB t3.medium
+      lineinfile:
+        path: /etc/default/jenkins
+        regexp: '^JAVA_ARGS='
+        line: 'JAVA_ARGS="-Xmx2g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=30 -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1ReservePercent=15 -XX:InitiatingHeapOccupancyPercent=30"'
+        state: present
+      notify: restart jenkins
+
+    - name: Configure Jenkins disk space threshold
+      lineinfile:
+        path: /etc/default/jenkins
+        line: 'JENKINS_ARGS="${JENKINS_ARGS} --diskSpaceThreshold=1gb"'
+        insertafter: EOF
+        state: present
+
+    - name: Optimize system memory for Jenkins
+      sysctl:
+        name: vm.swappiness
+        value: '10'
+        sysctl_set: yes
+        state: present
+
+    - name: Increase file descriptors for Jenkins user
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: 'jenkins  soft  nofile  65536'
+        insertbefore: '^# End of file'
+        state: present
+
+    - name: Increase file descriptors hard limit
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: 'jenkins  hard  nofile  65536'
+        insertbefore: '^# End of file'
+        state: present
+
+    - name: Configure Jenkins workspace cleanup
+      shell: |
+        cat > /tmp/jenkins-cleanup.sh << 'EOF'
+        #!/bin/bash
+        # Clean Jenkins workspace older than 7 days
+        find /var/lib/jenkins/workspace -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+        # Clean Jenkins build artifacts older than 30 days
+        find /var/lib/jenkins/jobs/*/builds -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
+        EOF
+        chmod +x /tmp/jenkins-cleanup.sh
+        cat /tmp/jenkins-cleanup.sh >> /etc/cron.daily/jenkins-cleanup
+        chmod +x /etc/cron.daily/jenkins-cleanup
+
+    - name: Configure Jenkins plugins for better performance
+      block:
+        - name: Download Jenkins CLI jar
+          get_url:
+            url: "http://localhost:8080/jnlpJars/jenkins-cli.jar"
+            dest: /tmp/jenkins-cli.jar
+            timeout: 60
+          retries: 3
+          delay: 5
+          ignore_errors: yes
+
+    - name: Optimize npm for Jenkins builds
+      shell: |
+        npm config set maxsockets 2
+        npm config set fetch-timeout 120000
+        npm config set fetch-retry-mintimeout 20000
+        npm config set fetch-retry-maxtimeout 120000
+
+    - name: Disable Jenkins security realm caching (for faster auth)
+      lineinfile:
+        path: /etc/default/jenkins
+        line: 'JENKINS_ARGS="${JENKINS_ARGS} -Dhudson.security.RealmCache.enabled=false"'
+        insertafter: EOF
+        state: present
+
+  handlers:
+    - name: restart jenkins
+      systemd:
+        name: jenkins
+        state: restarted
+        daemon_reload: yes
+
+    - name: wait for jenkins
+      wait_for:
+        port: 8080
+        delay: 10
+        timeout: 300
+      become: no
+      become_user: "{{ ansible_user }}"
+
+  post_tasks:
+    - name: Jenkins optimization complete
+      debug:
+        msg: |
+          ✅ Jenkins optimization complete!
+          - JVM memory set to: Xmx2g (max) Xms1g (min)
+          - G1GC garbage collector enabled
+          - Disk space threshold: 1GB
+          - VM swappiness: 10 (less swapping)
+          - File descriptors: 65536
+          - Workspace cleanup scheduled daily
+          - npm maxsockets: 2
+          
+          Restart Jenkins if not already done:
+          sudo systemctl restart jenkins

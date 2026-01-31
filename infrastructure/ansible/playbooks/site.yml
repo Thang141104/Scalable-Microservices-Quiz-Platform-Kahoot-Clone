@@ -1,0 +1,73 @@
+---
+# ===================================
+# Site Playbook - Main Entry Point
+# ===================================
+
+- name: Setup Jenkins Server
+  hosts: jenkins
+  roles:
+    - common
+    - docker
+    - jenkins
+
+- name: Setup Kubernetes Master
+  hosts: k8s_master
+  roles:
+    - common
+    - kubernetes
+  tasks:
+    - name: Initialize Kubernetes cluster
+      shell: |
+        kubeadm init --pod-network-cidr={{ pod_network_cidr }} --ignore-preflight-errors=all
+      register: kubeadm_init
+      become: yes
+      ignore_errors: yes
+
+    - name: Setup kubeconfig for ubuntu user
+      shell: |
+        mkdir -p /home/ubuntu/.kube
+        cp -f /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+        chown ubuntu:ubuntu /home/ubuntu/.kube/config
+      become: yes
+
+    - name: Install Calico network plugin
+      shell: |
+        kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      become: yes
+      become_user: ubuntu
+
+    - name: Generate join command
+      shell: kubeadm token create --print-join-command
+      register: join_command
+      become: yes
+
+    - name: Save join command
+      set_fact:
+        k8s_join_command: "{{ join_command.stdout }}"
+
+- name: Setup Kubernetes Workers
+  hosts: k8s_workers
+  roles:
+    - common
+    - kubernetes
+  tasks:
+    - name: Join Kubernetes cluster
+      shell: "{{ hostvars[groups['k8s_master'][0]]['k8s_join_command'] }}"
+      become: yes
+      ignore_errors: yes
+
+- name: Configure kubectl access for Jenkins
+  hosts: jenkins
+  tasks:
+    - name: Create .kube directory
+      file:
+        path: /var/lib/jenkins/.kube
+        state: directory
+        owner: jenkins
+        group: jenkins
+        mode: '0755'
+      become: yes
+
+    - name: Copy kubeconfig from master (manual step required)
+      debug:
+        msg: "Run: scp ubuntu@{{ hostvars[groups['k8s_master'][0]]['ansible_host'] }}:/home/ubuntu/.kube/config /var/lib/jenkins/.kube/config"

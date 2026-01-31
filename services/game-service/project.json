@@ -1,0 +1,17 @@
+{
+  "name": "game-service",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/game-service",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:node",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/services/game-service",
+        "main": "services/game-service/server.js"
+      }
+    }
+  },
+  "tags": ["scope:game", "type:service"]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gateway",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "gateway",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:node",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/gateway",
+        "main": "gateway/server.js"
+      }
+    }
+  },
+  "tags": ["scope:gateway", "type:app"]
+}

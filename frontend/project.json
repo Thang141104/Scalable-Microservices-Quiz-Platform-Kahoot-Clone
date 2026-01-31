@@ -1,0 +1,18 @@
+{
+  "name": "frontend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "frontend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/web:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/frontend",
+        "index": "frontend/public/index.html",
+        "main": "frontend/src/index.js"
+      }
+    }
+  },
+  "tags": ["scope:frontend", "type:app"]
+}

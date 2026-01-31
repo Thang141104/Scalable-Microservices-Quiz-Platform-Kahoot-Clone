@@ -1,0 +1,48 @@
+# ============================================
+# Jenkins Role - Install Trivy
+# ============================================
+---
+- name: Create keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Download Trivy GPG key
+  get_url:
+    url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+    dest: /tmp/trivy.key
+    mode: '0644'
+    timeout: 60
+  retries: 3
+  delay: 5
+
+- name: Add Trivy GPG key
+  shell: |
+    cat /tmp/trivy.key | gpg --dearmor -o /etc/apt/keyrings/trivy.gpg
+  args:
+    creates: /etc/apt/keyrings/trivy.gpg
+  become: yes
+
+- name: Add Trivy repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    state: present
+  become: yes
+
+- name: Install Trivy
+  apt:
+    name: trivy
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Verify Trivy installation
+  command: trivy --version
+  register: trivy_version
+  changed_when: false
+
+- name: Display Trivy version
+  debug:
+    msg: "Trivy version: {{ trivy_version.stdout }}"

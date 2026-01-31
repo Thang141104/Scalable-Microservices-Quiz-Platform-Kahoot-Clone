@@ -1,0 +1,51 @@
+# ============================================
+# Kubernetes Master - Install AWS CLI
+# ============================================
+---
+- name: Check if AWS CLI v2 is installed
+  command: aws --version
+  register: awscli_check
+  changed_when: false
+  failed_when: false
+
+- name: Download AWS CLI v2
+  get_url:
+    url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    dest: /tmp/awscliv2.zip
+    mode: '0644'
+    timeout: 120
+  when: awscli_check.rc != 0
+  retries: 3
+  delay: 10
+
+- name: Unzip AWS CLI
+  unarchive:
+    src: /tmp/awscliv2.zip
+    dest: /tmp
+    remote_src: yes
+  when: awscli_check.rc != 0
+  become: yes
+
+- name: Install AWS CLI v2
+  command: /tmp/aws/install
+  become: yes
+  when: awscli_check.rc != 0
+
+- name: Clean up AWS CLI installation files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/awscliv2.zip
+    - /tmp/aws
+  become: yes
+  when: awscli_check.rc != 0
+
+- name: Verify AWS CLI installation
+  command: aws --version
+  register: awscli_version
+  changed_when: false
+
+- name: Display AWS CLI version
+  debug:
+    msg: "AWS CLI installed: {{ awscli_version.stdout }}"

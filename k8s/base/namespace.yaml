@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kahoot-clone
+  labels:
+    name: kahoot-clone
+    environment: production

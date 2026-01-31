@@ -1,0 +1,49 @@
+# ============================================
+# Jenkins Role - Install kubectl
+# ============================================
+---
+- name: Get latest kubectl version
+  uri:
+    url: https://dl.k8s.io/release/stable.txt
+    return_content: yes
+    timeout: 60
+  register: kubectl_version
+  retries: 3
+  delay: 5
+  until: kubectl_version is succeeded
+  ignore_errors: yes
+
+- name: Set kubectl version
+  set_fact:
+    kubectl_ver: "{{ kubectl_version.content | default('v1.28.0') | trim }}"
+
+- name: Download kubectl
+  get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_ver }}/bin/linux/amd64/kubectl"
+    dest: /tmp/kubectl
+    mode: '0755'
+    timeout: 120
+  retries: 3
+  delay: 10
+
+- name: Install kubectl
+  copy:
+    src: /tmp/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+    remote_src: yes
+  become: yes
+
+- name: Clean up kubectl download
+  file:
+    path: /tmp/kubectl
+    state: absent
+
+- name: Verify kubectl installation
+  command: kubectl version --client
+  register: kubectl_client_version
+  changed_when: false
+
+- name: Display kubectl version
+  debug:
+    msg: "kubectl version: {{ kubectl_client_version.stdout }}"

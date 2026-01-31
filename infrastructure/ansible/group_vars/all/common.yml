@@ -1,0 +1,25 @@
+# ============================================
+# Group Variables - All Hosts
+# ============================================
+---
+# Common settings
+ansible_user: ubuntu
+ansible_python_interpreter: /usr/bin/python3
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+# Project configuration
+project_name: kahoot-clone
+environment: prod
+
+# AWS region (will be overridden by Terraform outputs)
+aws_region: us-east-1
+
+# Common packages
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - unzip

@@ -1,0 +1,17 @@
+{
+  "name": "quiz-service",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/quiz-service",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:node",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/services/quiz-service",
+        "main": "services/quiz-service/server.js"
+      }
+    }
+  },
+  "tags": ["scope:quiz", "type:service"]
+}

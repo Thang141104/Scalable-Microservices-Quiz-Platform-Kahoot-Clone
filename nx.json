@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "defaultBase": "HEAD~1"
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx-remotecache-s3",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint"],
+        "bucket": "kahoot-nx-cache-802346121373",
+        "region": "us-east-1",
+        "parallel": 3,
+        "cacheDirectory": "tmp/nx-cache"
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "test": {
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    }
+  },
+  "workspaceLayout": {
+    "appsDir": ".",
+    "libsDir": "libs"
+  },
+  "defaultProject": "gateway"
+}

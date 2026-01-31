@@ -1,0 +1,32 @@
+[Unit]
+Description=Jenkins Automation Server
+Requires=network.target
+After=network.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/jenkins
+Restart=on-failure
+SuccessExitStatus=143
+
+# Drop root privileges
+User=jenkins
+Group=jenkins
+
+# Directory and file access
+WorkingDirectory=/var/lib/jenkins
+ReadWritePaths=/var/lib/jenkins
+ReadWritePaths=/var/log/jenkins
+ReadWritePaths=/var/cache/jenkins
+
+# Java options
+Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+Environment="JENKINS_HOME=/var/lib/jenkins"
+Environment="JENKINS_PORT=8080"
+
+# File limits
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

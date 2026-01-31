@@ -1,0 +1,10 @@
+# ============================================
+# Jenkins Role - Handlers
+# ============================================
+---
+- name: restart jenkins
+  systemd:
+    name: jenkins
+    state: restarted
+    daemon_reload: yes
+  become: yes

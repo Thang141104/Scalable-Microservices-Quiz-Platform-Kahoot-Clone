@@ -1,0 +1,61 @@
+# ============================================
+# Ansible Main Playbook (Site.yml)
+# ============================================
+---
+- name: Configure all servers with common settings
+  hosts: all
+  become: yes
+  roles:
+    - common
+
+- name: Configure Docker on all servers
+  hosts: all
+  become: yes
+  roles:
+    - docker
+
+- name: Configure Jenkins server
+  hosts: jenkins
+  become: yes
+  roles:
+    - jenkins
+
+- name: Configure Kubernetes cluster
+  hosts: k8s
+  become: yes
+  roles:
+    - kubernetes
+
+- name: Final verification
+  hosts: all
+  tasks:
+    - name: Verify Docker is running
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      debug:
+        msg: "{{ inventory_hostname }}: Docker {{ docker_version.stdout }}"
+
+- name: Display access information
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Show Jenkins access info
+      debug:
+        msg:
+          - "================================"
+          - "Jenkins Server"
+          - "================================"
+          - "URL: http://{{ groups['jenkins'][0] }}:8080"
+          - "SSH: ssh -i ~/.ssh/kahoot-clone-key.pem ubuntu@{{ groups['jenkins'][0] }}"
+          - ""
+          - "================================"
+          - "Kubernetes Cluster"
+          - "================================"
+          - "Master: {{ groups['k8s_master'][0] }}"
+          - "Workers: {{ groups['k8s_workers'] | join(', ') }}"
+          - ""
+          - "To access K8s cluster:"
+          - "  scp -i ~/.ssh/kahoot-clone-key.pem ubuntu@{{ groups['k8s_master'][0] }}:/home/ubuntu/.kube/config ~/.kube/config"

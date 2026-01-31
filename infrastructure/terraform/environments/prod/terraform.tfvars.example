@@ -1,0 +1,50 @@
+# Production Environment Configuration Example
+# Copy this file to terraform.tfvars and update with your values
+
+# AWS Credentials
+aws_access_key = "YOUR_AWS_ACCESS_KEY"
+aws_secret_key = "YOUR_AWS_SECRET_KEY"
+aws_region     = "ap-southeast-1"
+
+# Project Configuration
+project_name = "kahoot-clone"
+owner_email  = "devops@yourcompany.com"
+
+# SSH Configuration (generate with: ssh-keygen -t rsa -b 4096)
+ssh_public_key       = "ssh-rsa AAAAB3NzaC1yc2EA... your-email@example.com"
+ssh_private_key_path = "~/.ssh/kahoot-prod"
+
+# Networking
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+enable_nat_gateway   = false  # Set true for private subnets internet access
+enable_vpc_flow_logs = true   # Enable for production monitoring
+
+# Jenkins
+jenkins_instance_type      = "t3.medium"  # 2 vCPU, 4GB RAM
+jenkins_root_volume_size   = 30           # GB
+jenkins_enable_elastic_ip  = true         # Recommended for production
+
+# Kubernetes
+k8s_master_instance_type    = "t3.medium"  # 2 vCPU, 4GB RAM
+k8s_master_root_volume_size = 30           # GB
+k8s_worker_count            = 2            # Number of worker nodes
+k8s_worker_instance_type    = "t3.medium"  # 2 vCPU, 4GB RAM  
+k8s_worker_root_volume_size = 30           # GB
+
+# ECR
+ecr_repository_names = [
+  "gateway",
+  "auth",
+  "user",
+  "quiz",
+  "game",
+  "analytics",
+  "frontend"
+]
+ecr_image_tag_mutability    = "MUTABLE"
+ecr_scan_on_push            = true
+ecr_enable_lifecycle_policy = true
+ecr_lifecycle_keep_count    = 30  # Keep last 30 images
+ecr_lifecycle_untagged_days = 7   # Delete untagged images after 7 days

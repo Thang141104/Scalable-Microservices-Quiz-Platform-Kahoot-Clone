@@ -1,0 +1,83 @@
+# ============================================
+# Common Role - Main Tasks
+# ============================================
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ ansible_play_hosts }}"
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  become: yes
+  when: common_upgrade_packages | default(false)
+
+- name: Install essential packages
+  apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: no
+  become: yes
+  async: 300
+  poll: 0
+  register: apt_install
+
+- name: Wait for package installation
+  async_status:
+    jid: "{{ apt_install.ansible_job_id }}"
+  register: job_result
+  until: job_result.finished
+  retries: 30
+  delay: 10
+
+- name: Set timezone
+  timezone:
+    name: "{{ common_timezone }}"
+  become: yes
+
+- name: Configure NTP
+  include_tasks: ntp.yml
+  when: common_configure_ntp | default(true)
+
+- name: Configure firewall
+  include_tasks: firewall.yml
+  when: common_configure_firewall | default(false)
+
+- name: Create common directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ common_directories }}"
+  become: yes
+
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+  become: yes
+  when: common_set_hostname | default(true)
+
+- name: Update /etc/hosts
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    mode: '0644'
+  become: yes
+  when: common_update_hosts | default(true)
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop: "{{ common_sysctl_params | dict2items }}"
+  become: yes
+  when: common_sysctl_params is defined

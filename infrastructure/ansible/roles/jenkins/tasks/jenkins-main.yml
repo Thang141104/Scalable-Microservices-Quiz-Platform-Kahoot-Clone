@@ -1,0 +1,106 @@
+---
+# ===================================
+# Jenkins Role - Jenkins Installation
+# ===================================
+
+- name: Add Jenkins GPG key
+  apt_key:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    state: present
+  become: yes
+
+- name: Add Jenkins repository
+  apt_repository:
+    repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+    state: present
+  become: yes
+
+- name: Install Java (Jenkins dependency)
+  apt:
+    name: openjdk-17-jdk
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Install Jenkins
+  apt:
+    name: jenkins
+    state: present
+  become: yes
+
+- name: Add jenkins user to docker group
+  user:
+    name: jenkins
+    groups: docker
+    append: yes
+  become: yes
+
+- name: Install NodeJS
+  shell: |
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+  become: yes
+
+- name: Install AWS CLI v2
+  shell: |
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+    unzip -o /tmp/awscliv2.zip -d /tmp
+    /tmp/aws/install --update
+    rm -rf /tmp/aws /tmp/awscliv2.zip
+  become: yes
+
+- name: Install kubectl
+  shell: |
+    curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
+  become: yes
+
+- name: Install Trivy
+  shell: |
+    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
+    echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee -a /etc/apt/sources.list.d/trivy.list
+    apt-get update
+    apt-get install -y trivy
+  become: yes
+
+- name: Install SonarQube Scanner
+  shell: |
+    wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -O /tmp/sonar-scanner.zip
+    unzip -o /tmp/sonar-scanner.zip -d /opt
+    ln -sf /opt/sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner
+    rm /tmp/sonar-scanner.zip
+  become: yes
+
+- name: Create .kube directory for Jenkins
+  file:
+    path: /var/lib/jenkins/.kube
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Ensure Jenkins service is running
+  systemd:
+    name: jenkins
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Wait for Jenkins to start
+  wait_for:
+    port: 8080
+    delay: 10
+    timeout: 300
+
+- name: Get Jenkins initial admin password
+  shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_password
+  become: yes
+  ignore_errors: yes
+
+- name: Display Jenkins initial password
+  debug:
+    msg: "Jenkins initial password: {{ jenkins_password.stdout }}"
+  when: jenkins_password.stdout is defined

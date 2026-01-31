@@ -1,0 +1,31 @@
+---
+# ============================================
+# Firewall Configuration (UFW)
+# ============================================
+
+- name: Install UFW
+  apt:
+    name: ufw
+    state: present
+  become: yes
+
+- name: Allow SSH
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+  become: yes
+
+- name: Set default policies
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  become: yes
+  loop:
+    - { direction: 'incoming', policy: 'deny' }
+    - { direction: 'outgoing', policy: 'allow' }
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+  become: yes

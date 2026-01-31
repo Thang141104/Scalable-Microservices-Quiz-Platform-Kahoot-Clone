@@ -1,0 +1,10 @@
+# AWS credentials
+aws_access_key = "YOUR_AWS_ACCESS_KEY"
+aws_secret_key = "YOUR_AWS_SECRET_KEY"
+aws_region     = "ap-southeast-1"
+
+# Project configuration
+project_name = "kahoot-clone"
+
+# Environments to create backend for
+environments = ["dev", "staging", "prod"]

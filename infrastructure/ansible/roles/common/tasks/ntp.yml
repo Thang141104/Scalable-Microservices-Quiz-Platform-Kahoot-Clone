@@ -1,0 +1,36 @@
+---
+# ============================================
+# NTP Configuration
+# ============================================
+
+- name: Install NTP packages
+  apt:
+    name:
+      - systemd-timesyncd
+    state: present
+  become: yes
+
+- name: Enable and start systemd-timesyncd
+  systemd:
+    name: systemd-timesyncd
+    enabled: yes
+    state: started
+  become: yes
+
+- name: Configure NTP servers
+  template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  notify: restart timesyncd
+  when: common_ntp_servers is defined
+
+- name: Ensure time synchronization is enabled
+  command: timedatectl set-ntp true
+  become: yes
+  changed_when: false
+  failed_when: false
+  ignore_errors: yes

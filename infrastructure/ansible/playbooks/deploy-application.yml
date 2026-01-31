@@ -1,0 +1,181 @@
+---
+# ===================================
+# Deploy Kahoot Clone Application
+# ===================================
+
+- name: Deploy Kahoot Clone Application to Kubernetes
+  hosts: k8s_master
+  become: yes
+  tasks:
+
+    # --------------------------------------------------
+    # Get Worker Node IPs for ConfigMap
+    # --------------------------------------------------
+    - name: Get worker nodes
+      shell: kubectl get nodes -o jsonpath='{range .items[?(@.metadata.labels.node-role\.kubernetes\.io/control-plane!="")]}{.status.addresses[?(@.type=="ExternalIP")].address}{"\n"}{end}' | head -2
+      become_user: ubuntu
+      register: worker_nodes_output
+      
+    - name: Set worker node IPs
+      set_fact:
+        worker_node_1: "{{ worker_nodes_output.stdout_lines[0] | default('') }}"
+        worker_node_2: "{{ worker_nodes_output.stdout_lines[1] | default(worker_nodes_output.stdout_lines[0]) }}"
+    
+    - name: Display worker nodes
+      debug:
+        msg:
+          - "Worker Node 1: {{ worker_node_1 }}"
+          - "Worker Node 2: {{ worker_node_2 }}"
+
+    # --------------------------------------------------
+    # Create Namespace
+    # --------------------------------------------------
+    - name: Apply namespace
+      shell: kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: kahoot-clone
+        EOF
+      become_user: ubuntu
+
+    # --------------------------------------------------
+    # Update ConfigMap with Dynamic IPs
+    # --------------------------------------------------
+    - name: Update ConfigMap with worker node IPs
+      template:
+        src: "../templates/configmap.yaml.j2"
+        dest: "/tmp/configmap.yaml"
+        mode: '0644'
+      vars:
+        gateway_url: "http://{{ worker_node_1 }}:30000"
+        socket_url: "http://{{ worker_node_1 }}:30003"
+        frontend_url: "http://{{ worker_node_2 | default(worker_node_1) }}:30006"
+
+    - name: Apply ConfigMap
+      shell: kubectl apply -f /tmp/configmap.yaml
+      become_user: ubuntu
+
+    # --------------------------------------------------
+    # Create ECR Registry Secret
+    # --------------------------------------------------
+    - name: Get ECR login token
+      shell: |
+        aws ecr get-login-password --region us-east-1
+      register: ecr_token
+      delegate_to: localhost
+      become: no
+
+    - name: Create ECR registry secret
+      shell: |
+        kubectl create secret docker-registry ecr-registry-secret \
+          --docker-server=802346121373.dkr.ecr.us-east-1.amazonaws.com \
+          --docker-username=AWS \
+          --docker-password="{{ ecr_token.stdout }}" \
+          --namespace=kahoot-clone \
+          --dry-run=client -o yaml | kubectl apply -f -
+      become_user: ubuntu
+
+    # --------------------------------------------------
+    # Apply Secrets
+    # --------------------------------------------------
+    - name: Check if app-secrets exists
+      shell: kubectl get secret app-secrets -n kahoot-clone
+      register: secret_exists
+      failed_when: false
+      changed_when: false
+      become_user: ubuntu
+
+    - name: Apply app secrets
+      shell: kubectl apply -f /home/ubuntu/k8s-manifests/secrets.yaml
+      become_user: ubuntu
+      when: secret_exists.rc != 0
+
+    # --------------------------------------------------
+    # Deploy Services
+    # --------------------------------------------------
+    - name: Deploy backend services
+      shell: |
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/auth-deployment.yaml
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/user-deployment.yaml
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/quiz-deployment.yaml
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/game-deployment.yaml
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/analytics-deployment.yaml
+        kubectl apply -f /home/ubuntu/k8s-manifests/services/gateway-deployment.yaml
+      become_user: ubuntu
+
+    - name: Deploy frontend
+      shell: kubectl apply -f /home/ubuntu/k8s-manifests/frontend/frontend-deployment.yaml
+      become_user: ubuntu
+
+    # --------------------------------------------------
+    # Wait for Deployments
+    # --------------------------------------------------
+    - name: Wait for auth-service
+      shell: kubectl wait --for=condition=ready pod -l app=auth-service -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for user-service
+      shell: kubectl wait --for=condition=ready pod -l app=user-service -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for quiz-service
+      shell: kubectl wait --for=condition=ready pod -l app=quiz-service -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for game-service
+      shell: kubectl wait --for=condition=ready pod -l app=game-service -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for analytics-service
+      shell: kubectl wait --for=condition=ready pod -l app=analytics-service -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for gateway
+      shell: kubectl wait --for=condition=ready pod -l app=gateway -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Wait for frontend
+      shell: kubectl wait --for=condition=ready pod -l app=frontend -n kahoot-clone --timeout=300s
+      become_user: ubuntu
+      ignore_errors: yes
+
+    # --------------------------------------------------
+    # Display Status
+    # --------------------------------------------------
+    - name: Get all pods
+      shell: kubectl get pods -n kahoot-clone -o wide
+      become_user: ubuntu
+      register: pods_status
+
+    - name: Get all services
+      shell: kubectl get svc -n kahoot-clone
+      become_user: ubuntu
+      register: services_status
+
+    - name: Display deployment status
+      debug:
+        msg:
+          - "================================================"
+          - "KAHOOT CLONE DEPLOYMENT STATUS"
+          - "================================================"
+          - "{{ pods_status.stdout_lines }}"
+          - ""
+          - "================================================"
+          - "SERVICES"
+          - "================================================"
+          - "{{ services_status.stdout_lines }}"
+          - ""
+          - "================================================"
+          - "ACCESS URLs"
+          - "================================================"
+          - "Frontend:  http://{{ worker_node_2 | default(worker_node_1) }}:30006"
+          - "Gateway:   http://{{ worker_node_1 }}:30000"
+          - "Game (WS): http://{{ worker_node_1 }}:30003"
+          - "================================================"

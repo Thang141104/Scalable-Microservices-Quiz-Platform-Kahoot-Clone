@@ -1,0 +1,37 @@
+# ============================================
+# Kubernetes Role - Worker Tasks
+# ============================================
+---
+- name: Check if node is already joined
+  stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf
+
+- name: Wait for join command to be created on localhost
+  wait_for:
+    path: /tmp/k8s-join-command.sh
+    timeout: 600
+  delegate_to: localhost
+  become: no
+  when: not kubelet_conf.stat.exists
+
+- name: Copy join command from master
+  copy:
+    src: /tmp/k8s-join-command.sh
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+  when: not kubelet_conf.stat.exists
+
+- name: Join Kubernetes cluster
+  command: /tmp/k8s-join-command.sh
+  become: yes
+  when: not kubelet_conf.stat.exists
+  retries: 3
+  delay: 10
+  register: join_result
+  until: join_result is succeeded
+
+- name: Clean up join command
+  file:
+    path: /tmp/k8s-join-command.sh
+    state: absent

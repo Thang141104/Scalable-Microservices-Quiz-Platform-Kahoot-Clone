@@ -1,0 +1,26 @@
+# ============================================
+# Docker Role - Variables
+# ============================================
+---
+# Docker users
+docker_users:
+  - ubuntu
+  - jenkins
+
+# Docker daemon configuration
+docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+  features:
+    buildkit: true
+  default-ulimits:
+    nofile:
+      Name: "nofile"
+      Hard: 64000
+      Soft: 64000
+
+# BuildKit configuration
+docker_buildkit_enabled: true

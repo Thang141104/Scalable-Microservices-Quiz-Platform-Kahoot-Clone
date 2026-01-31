@@ -1,0 +1,109 @@
+# ============================================
+# Jenkins Plugins Installation Tasks
+# ============================================
+---
+- name: Wait for Jenkins to be fully ready
+  uri:
+    url: http://localhost:8080/login
+    status_code: 200
+  register: jenkins_ready
+  until: jenkins_ready.status == 200
+  retries: 30
+  delay: 10
+  ignore_errors: yes
+
+- name: Download Jenkins CLI
+  get_url:
+    url: http://localhost:8080/jnlpJars/jenkins-cli.jar
+    dest: /tmp/jenkins-cli.jar
+    mode: '0644'
+  retries: 5
+  delay: 10
+
+- name: Check if plugins are already installed
+  shell: |
+    #!/bin/bash
+    # Check if Jenkins has initial password (first setup)
+    if [ ! -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
+      echo "jenkins_configured"
+      exit 0
+    fi
+    
+    # Check plugins
+    JENKINS_PASSWORD=$(cat /var/lib/jenkins/secrets/initialAdminPassword)
+    java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ \
+      -auth admin:$JENKINS_PASSWORD list-plugins 2>/dev/null | \
+      grep -E "blueocean|pipeline-stage-view" || echo "not_installed"
+  args:
+    executable: /bin/bash
+  register: plugins_check
+  become: yes
+  changed_when: false
+  failed_when: false
+
+- name: Install Jenkins visualization plugins
+  shell: |
+    #!/bin/bash
+    set -e
+    
+    # Wait for password file to exist
+    for i in {1..30}; do
+      if [ -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
+        break
+      fi
+      sleep 2
+    done
+    
+    JENKINS_PASSWORD=$(cat /var/lib/jenkins/secrets/initialAdminPassword)
+    
+    # Install plugins using jenkins-cli
+    PLUGINS=(
+      "blueocean"
+      "pipeline-stage-view"
+      "pipeline-graph-analysis"
+      "pipeline-rest-api"
+      "build-monitor-plugin"
+      "dashboard-view"
+      "timestamper"
+      "ansicolor"
+      "git"
+      "workflow-aggregator"
+    )
+    
+    for plugin in "${PLUGINS[@]}"; do
+      echo "Installing plugin: $plugin"
+      java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ \
+        -auth admin:$JENKINS_PASSWORD \
+        install-plugin $plugin || echo "Failed to install $plugin, continuing..."
+    done
+  args:
+    executable: /bin/bash
+  become: yes
+  when: 
+    - plugins_check.stdout.find('not_installed') != -1
+    - plugins_check.stdout.find('jenkins_configured') == -1
+  register: plugins_install
+
+- name: Restart Jenkins after plugin installation
+  systemd:
+    name: jenkins
+    state: restarted
+  become: yes
+  when: plugins_install is changed
+
+- name: Wait for Jenkins to restart
+  wait_for:
+    port: 8080
+    delay: 15
+    timeout: 300
+  when: plugins_install is changed
+
+- name: Display Jenkins access info
+  debug:
+    msg:
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "✅ Jenkins Setup Complete!"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "Note: Jenkins is already configured. Use existing admin credentials."
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  when: plugins_check.stdout.find('jenkins_configured') != -1

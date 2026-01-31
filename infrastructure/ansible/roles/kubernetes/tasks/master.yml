@@ -1,0 +1,131 @@
+# ============================================
+# Kubernetes Role - Master Tasks
+# ============================================
+---
+- name: Check if Kubernetes is already initialized
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_initialized
+
+- name: Initialize Kubernetes cluster
+  command: >
+    kubeadm init
+    --pod-network-cidr={{ k8s_pod_network_cidr }}
+    --service-cidr={{ k8s_service_cidr }}
+    --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+  become: yes
+  when: not k8s_initialized.stat.exists
+  register: kubeadm_init
+
+- name: Create .kube directory for ubuntu user
+  file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Copy kubeconfig for ubuntu user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ubuntu/.kube/config
+    remote_src: yes
+    owner: ubuntu
+    group: ubuntu
+    mode: '0600'
+  become: yes
+
+- name: Wait for API server to be ready
+  wait_for:
+    host: localhost
+    port: 6443
+    delay: 5
+    timeout: 300
+  when: not k8s_initialized.stat.exists
+
+- name: Check if Calico is already installed
+  become: yes
+  become_user: ubuntu
+  command: kubectl get pods -n kube-system -l k8s-app=calico-node
+  register: calico_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Calico network plugin
+  become: yes
+  become_user: ubuntu
+  command: kubectl apply -f {{ k8s_calico_manifest_url }}
+  when: calico_check.rc != 0 or calico_check.stdout == ""
+  retries: 5
+  delay: 10
+  register: calico_result
+  until: calico_result is succeeded
+
+- name: Wait for Calico pods to be ready
+  become: yes
+  become_user: ubuntu
+  shell: |
+    kubectl wait --for=condition=ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
+  retries: 3
+  delay: 10
+  register: calico_wait
+  until: calico_wait is succeeded
+  failed_when: false
+
+- name: Wait for CoreDNS to be ready
+  become: yes
+  become_user: ubuntu
+  shell: |
+    kubectl wait --for=condition=ready pod -l k8s-app=kube-dns -n kube-system --timeout=300s
+  retries: 3
+  delay: 10
+  register: coredns_wait
+  until: coredns_wait is succeeded
+  failed_when: false
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  become: yes
+  register: k8s_join_command
+  changed_when: false
+
+- name: Save join command to file
+  copy:
+    content: |
+      #!/bin/bash
+      {{ k8s_join_command.stdout }}
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+  delegate_to: localhost
+  become: no
+
+- name: Wait for master node to be ready
+  become: yes
+  become_user: ubuntu
+  shell: |
+    nodes_ready=$(kubectl get nodes --no-headers | awk '{print $2}' | grep -c "Ready")
+    total_nodes=$(kubectl get nodes --no-headers | wc -l)
+    if [ "$nodes_ready" -eq "$total_nodes" ] && [ "$total_nodes" -ge 1 ]; then
+      echo "All nodes ready: $nodes_ready/$total_nodes"
+      exit 0
+    else
+      echo "Nodes not ready: $nodes_ready/$total_nodes"
+      exit 1
+    fi
+  register: nodes_status
+  until: nodes_status.rc == 0
+  retries: 120
+  delay: 10
+  changed_when: false
+  failed_when: false
+
+- name: Display cluster status
+  become: yes
+  become_user: ubuntu
+  command: kubectl get nodes -o wide
+  register: cluster_status
+  changed_when: false
+
+- name: Show cluster status
+  debug:
+    var: cluster_status.stdout_lines

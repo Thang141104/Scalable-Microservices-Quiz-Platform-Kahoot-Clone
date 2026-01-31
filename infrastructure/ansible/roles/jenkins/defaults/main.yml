@@ -1,0 +1,29 @@
+# ============================================
+# Jenkins Role - Variables
+# ============================================
+---
+# Jenkins configuration
+jenkins_home: /var/lib/jenkins
+jenkins_port: 8080
+# Optimized for t3.medium (4GB RAM) with G1GC
+jenkins_java_opts: "-Xmx2g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=30 -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1ReservePercent=15 -XX:InitiatingHeapOccupancyPercent=30"
+jenkins_args: "--diskSpaceThreshold=1gb"
+
+# Java version (required for SonarQube Scanner)
+java_version: "17"
+
+# Node.js version (LTS)
+node_major_version: "20"
+
+# SonarQube Scanner
+jenkins_sonar_scanner_version: "4.8.0.2856"
+
+# Jenkins plugins (to be installed via Jenkins CLI if needed)
+jenkins_plugins:
+  - git
+  - workflow-aggregator
+  - docker-workflow
+  - kubernetes
+  - blueocean
+  - sonar
+  - aws-credentials

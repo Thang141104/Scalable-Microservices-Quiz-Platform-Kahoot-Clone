@@ -1,0 +1,96 @@
+---
+# ============================================
+# Fix Jenkins Java Version
+# ============================================
+# This playbook upgrades Jenkins Java from 11 to 17
+# to support sonar-scanner CLI tool
+# ============================================
+
+- name: Fix Jenkins Java Version for SonarQube Scanner
+  hosts: jenkins
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Display current Java version
+      command: java -version
+      register: current_java
+      changed_when: false
+
+    - name: Show current Java
+      debug:
+        msg: "Current Java: {{ current_java.stderr }}"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Remove Java 11
+      apt:
+        name: "{{ item }}"
+        state: absent
+        purge: yes
+      loop:
+        - openjdk-11-jdk
+        - openjdk-11-jre
+        - openjdk-11-jre-headless
+      ignore_errors: yes
+
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Set Java 17 as default (if alternatives exist)
+      alternatives:
+        name: java
+        link: /usr/bin/java
+        path: /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+      ignore_errors: yes
+
+    - name: Verify Java 17 installation
+      command: java -version
+      register: new_java
+      changed_when: false
+
+    - name: Show new Java version
+      debug:
+        msg: "New Java: {{ new_java.stderr }}"
+
+    - name: Restart Jenkins service
+      systemd:
+        name: jenkins
+        state: restarted
+        daemon_reload: yes
+
+    - name: Wait for Jenkins to be ready
+      wait_for:
+        port: 8080
+        delay: 10
+        timeout: 300
+      become: no
+      become_user: "{{ ansible_user }}"
+
+    - name: Install/Update SonarQube Scanner with Java 17
+      include_role:
+        name: jenkins
+        tasks_from: sonar-scanner.yml
+
+    - name: Verify SonarQube Scanner works with Java 17
+      command: sonar-scanner --version
+      register: sonar_version
+      changed_when: false
+
+    - name: Display SonarQube Scanner version
+      debug:
+        msg: "SonarQube Scanner version: {{ sonar_version.stdout }}"
+
+    - name: Jenkins fix complete
+      debug:
+        msg: |
+          ✅ Jenkins Java upgrade complete!
+          - Java 17 installed and verified
+          - SonarQube Scanner installed and working
+          - Jenkins service restarted
+          - Ready for SonarQube analysis in pipeline

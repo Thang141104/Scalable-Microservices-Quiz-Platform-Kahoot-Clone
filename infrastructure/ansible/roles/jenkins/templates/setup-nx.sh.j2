@@ -1,0 +1,62 @@
+#!/bin/bash
+# ============================================
+# Nx Auto-Setup Script for Jenkins Jobs
+# ============================================
+
+set -e
+
+WORKSPACE_ROOT=$(pwd)
+NX_CACHE_BUCKET="{{ nx_cache_bucket }}"
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔧 Setting up Nx for workspace"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check if nx.json exists
+if [ ! -f "${WORKSPACE_ROOT}/nx.json" ]; then
+    echo "📝 Creating nx.json..."
+    cp /var/lib/jenkins/nx-templates/nx.json "${WORKSPACE_ROOT}/nx.json"
+fi
+
+# Check if workspace.json exists
+if [ ! -f "${WORKSPACE_ROOT}/workspace.json" ]; then
+    echo "📝 Creating workspace.json..."
+    cp /var/lib/jenkins/nx-templates/workspace.json "${WORKSPACE_ROOT}/workspace.json"
+fi
+
+# Check if package.json has Nx dependencies
+if ! grep -q "\"nx\"" "${WORKSPACE_ROOT}/package.json" 2>/dev/null; then
+    echo "📦 Adding Nx to package.json..."
+    
+    # Create package.json if not exists
+    if [ ! -f "${WORKSPACE_ROOT}/package.json" ]; then
+        cat > "${WORKSPACE_ROOT}/package.json" << 'EOF'
+{
+  "name": "kahoot-clone-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "affected:apps": "nx affected:apps",
+    "affected:build": "nx affected:build --parallel=3",
+    "affected:test": "nx affected:test --parallel=3"
+  },
+  "devDependencies": {
+    "nx": "^17.0.0",
+    "@nx/js": "^17.0.0",
+    "@nx/workspace": "^17.0.0",
+    "nx-remotecache-s3": "^11.0.0"
+  }
+}
+EOF
+    fi
+fi
+
+# Install Nx dependencies if node_modules doesn't exist
+if [ ! -d "${WORKSPACE_ROOT}/node_modules" ]; then
+    echo "📦 Installing Nx dependencies..."
+    npm install --prefer-offline --no-audit 2>/dev/null || npm install -D nx@latest @nx/js@latest @nx/workspace@latest nx-remotecache-s3@latest
+fi
+
+echo "✅ Nx setup complete!"
+echo "☁️ Remote cache: ${NX_CACHE_BUCKET}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

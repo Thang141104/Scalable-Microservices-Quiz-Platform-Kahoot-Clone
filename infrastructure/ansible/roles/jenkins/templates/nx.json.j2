@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx-remotecache-s3",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint", "docker-build"],
+        "parallel": 3,
+        "bucket": "{{ nx_cache_bucket }}",
+        "region": "{{ aws_region }}",
+        "prefix": "nx-cache/",
+        "endpoint": "https://s3.amazonaws.com"
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "test": {
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    },
+    "docker-build": {
+      "cache": true
+    }
+  },
+  "affected": {
+    "defaultBase": "main"
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/.eslintrc.json"
+    ],
+    "sharedGlobals": ["{workspaceRoot}/package.json"]
+  },
+  "generators": {
+    "@nx/js:library": {
+      "unitTestRunner": "jest"
+    }
+  },
+  "plugins": [],
+  "defaultProject": "gateway"
+}

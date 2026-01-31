@@ -1,0 +1,15 @@
+---
+# ===================================
+# Jenkins Group Variables
+# ===================================
+
+# AWS Configuration
+aws_region: us-east-1
+
+# Nx Cache Configuration
+# This should be populated from Terraform outputs
+# Usage: ansible-playbook -e "nx_cache_bucket=kahoot-nx-cache-123456789012"
+nx_cache_bucket: "{{ lookup('env', 'NX_CACHE_BUCKET') | default('kahoot-nx-cache', true) }}"
+
+# ECR Configuration
+ecr_registry: "{{ lookup('env', 'ECR_REGISTRY') | default('', true) }}"

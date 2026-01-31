@@ -1,0 +1,90 @@
+# ============================================
+# SonarQube Deployment Tasks
+# Deploy SonarQube to Kubernetes cluster
+# ============================================
+---
+- name: Create sonarqube directory on master
+  file:
+    path: /home/ubuntu/sonarqube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+  become: yes
+
+- name: Copy SonarQube deployment manifest
+  copy:
+    src: "{{ playbook_dir }}/../../k8s/sonarqube-deployment.yaml"
+    dest: /home/ubuntu/sonarqube/sonarqube-deployment.yaml
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+  become: yes
+
+- name: Check if SonarQube namespace exists
+  shell: kubectl get namespace sonarqube
+  register: sonarqube_namespace
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Deploy SonarQube to Kubernetes
+  shell: kubectl apply -f /home/ubuntu/sonarqube/sonarqube-deployment.yaml
+  when: sonarqube_namespace.rc != 0
+  become: yes
+  become_user: ubuntu
+  register: sonarqube_deploy
+
+- name: Wait for SonarQube deployment to be ready
+  shell: kubectl wait --for=condition=available --timeout=600s deployment/sonarqube -n sonarqube
+  when: sonarqube_deploy is changed
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Wait for PostgreSQL to be ready
+  shell: kubectl wait --for=condition=ready --timeout=300s pod -l app=postgres -n sonarqube
+  when: sonarqube_deploy is changed
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Wait for SonarQube pod to be ready
+  shell: kubectl wait --for=condition=ready --timeout=600s pod -l app=sonarqube -n sonarqube
+  when: sonarqube_deploy is changed
+  become: yes
+  become_user: ubuntu
+  retries: 3
+  delay: 30
+  register: sonarqube_ready
+  until: sonarqube_ready.rc == 0
+  ignore_errors: yes
+
+- name: Get SonarQube service info
+  shell: kubectl get svc -n sonarqube sonarqube -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}'
+  register: sonarqube_service
+  become: yes
+  become_user: ubuntu
+  when: sonarqube_ready is succeeded
+
+- name: Display SonarQube access info
+  debug:
+    msg:
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "✅ SonarQube Deployment Complete!"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "📍 Cluster IP: {{ sonarqube_service.stdout }}"
+      - "📍 Service URL: http://sonarqube.sonarqube.svc.cluster.local:9000"
+      - "👤 Default Login: admin / admin"
+      - "⚠️  Change password on first login!"
+      - ""
+      - "🔧 To access from outside:"
+      - "   kubectl port-forward -n sonarqube svc/sonarqube 9000:9000"
+      - "   Then open: http://localhost:9000"
+      - ""
+      - "🎯 To generate token for Jenkins:"
+      - "   1. Login to SonarQube UI"
+      - "   2. My Account → Security → Generate Token"
+      - "   3. Add token to Jenkins credentials as 'sonarqube-token'"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  when: sonarqube_ready is succeeded

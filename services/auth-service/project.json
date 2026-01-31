@@ -1,0 +1,17 @@
+{
+  "name": "auth-service",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/auth-service",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:node",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/services/auth-service",
+        "main": "services/auth-service/server.js"
+      }
+    }
+  },
+  "tags": ["scope:auth", "type:service"]
+}

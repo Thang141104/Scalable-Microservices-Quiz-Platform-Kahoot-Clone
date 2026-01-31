@@ -1,0 +1,88 @@
+# ============================================
+# Jenkins Role - Install Nx
+# ============================================
+---
+- name: Create workspace directory for Nx
+  file:
+    path: /var/lib/jenkins/workspace
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Check if Nx is already installed globally
+  command: npm list -g nx
+  register: nx_check
+  changed_when: false
+  failed_when: false
+  become: yes
+
+- name: Install Nx CLI globally
+  npm:
+    name: nx
+    global: yes
+    state: latest
+  become: yes
+  when: nx_check.rc != 0
+
+- name: Install Nx workspace packages globally
+  npm:
+    name: "{{ item }}"
+    global: yes
+    state: latest
+  become: yes
+  loop:
+    - "@nx/js"
+    - "@nx/workspace"
+    - "@nx/web"
+    - "nx-remotecache-s3"
+  when: nx_check.rc != 0
+
+- name: Create Nx config template directory
+  file:
+    path: /var/lib/jenkins/nx-templates
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Deploy nx.json template
+  template:
+    src: nx.json.j2
+    dest: /var/lib/jenkins/nx-templates/nx.json
+    owner: jenkins
+    group: jenkins
+    mode: '0644'
+  become: yes
+
+- name: Deploy workspace.json template
+  template:
+    src: workspace.json.j2
+    dest: /var/lib/jenkins/nx-templates/workspace.json
+    owner: jenkins
+    group: jenkins
+    mode: '0644'
+  become: yes
+
+- name: Create Nx setup script for Jenkins jobs
+  template:
+    src: setup-nx.sh.j2
+    dest: /var/lib/jenkins/scripts/setup-nx.sh
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+  become: yes
+
+- name: Display Nx installation info
+  debug:
+    msg:
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "✅ Nx Installed on Jenkins"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "📦 Nx CLI: Globally installed"
+      - "☁️ S3 Cache: {{ nx_cache_bucket }}"
+      - "📝 Templates: /var/lib/jenkins/nx-templates/"
+      - "🔧 Setup Script: /var/lib/jenkins/scripts/setup-nx.sh"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

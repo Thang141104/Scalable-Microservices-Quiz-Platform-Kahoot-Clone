@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "projects": {
+    "gateway": {
+      "root": "gateway",
+      "sourceRoot": "gateway/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/gateway:{args.tag} ./gateway"
+          }
+        }
+      }
+    },
+    "auth-service": {
+      "root": "services/auth-service",
+      "sourceRoot": "services/auth-service/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/auth-service:{args.tag} ./services/auth-service"
+          }
+        }
+      }
+    },
+    "user-service": {
+      "root": "services/user-service",
+      "sourceRoot": "services/user-service/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/user-service:{args.tag} ./services/user-service"
+          }
+        }
+      }
+    },
+    "quiz-service": {
+      "root": "services/quiz-service",
+      "sourceRoot": "services/quiz-service/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/quiz-service:{args.tag} ./services/quiz-service"
+          }
+        }
+      }
+    },
+    "game-service": {
+      "root": "services/game-service",
+      "sourceRoot": "services/game-service/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/game-service:{args.tag} ./services/game-service"
+          }
+        }
+      }
+    },
+    "analytics-service": {
+      "root": "services/analytics-service",
+      "sourceRoot": "services/analytics-service/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/js:node"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/analytics-service:{args.tag} ./services/analytics-service"
+          }
+        }
+      }
+    },
+    "frontend": {
+      "root": "frontend",
+      "sourceRoot": "frontend/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nx/web:webpack"
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t {args.registry}/frontend:{args.tag} ./frontend"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+.join-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.join-card {
+  background: white;
+  border-radius: 24px;
+  padding: 48px 40px;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.join-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto 24px;
+}
+
+.join-card h1 {
+  font-size: 32px;
+  color: #2D3748;
+  margin-bottom: 8px;
+}
+
+.join-card > p {
+  color: #718096;
+  margin-bottom: 32px;
+}
+
+.form-section {
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2D3748;
+  margin-bottom: 8px;
+}
+
+.pin-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 24px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 8px;
+  color: #2D3748;
+}
+
+.pin-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.nickname-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #2D3748;
+}
+
+.nickname-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.avatar-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.avatar-option:hover {
+  transform: scale(1.05);
+}
+
+.avatar-option.selected {
+  border-color: #2D3748;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+.btn-join-game {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #E5164F 0%, #C41248 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.btn-join-game:disabled {
+  background: #CBD5E0;
+  cursor: not-allowed;
+}
+
+.help-text {
+  text-align: center;
+  font-size: 14px;
+  color: #A0AEC0;
+  margin-top: 24px;
+}

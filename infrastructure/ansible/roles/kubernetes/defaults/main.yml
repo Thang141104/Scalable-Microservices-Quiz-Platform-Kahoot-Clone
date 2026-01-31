@@ -1,0 +1,16 @@
+# ============================================
+# Kubernetes Role - Variables
+# ============================================
+---
+# Kubernetes version
+k8s_version: "1.28"
+
+# Network configuration
+k8s_pod_network_cidr: "192.168.0.0/16"
+k8s_service_cidr: "10.96.0.0/12"
+
+# Calico network plugin
+k8s_calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
+
+# Cluster configuration
+k8s_cluster_name: "kahoot-cluster"

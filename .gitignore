@@ -1,0 +1,154 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production
+/frontend/build
+/dist
+
+# Environment variables (ignore actual values, keep examples)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*/.env
+**/.env
+
+# BUT allow .env.example files (examples for setup)
+!.env.example
+!*/.env.example
+!**/.env.example
+
+# Terraform sensitive files (old location)
+terraform/terraform.tfvars
+terraform/*.tfvars
+!terraform/*.tfvars.example
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.pem
+terraform/tfplan
+
+# Infrastructure (new location)
+infrastructure/**/.terraform/
+infrastructure/**/.terraform.lock.hcl
+infrastructure/**/terraform.tfstate
+infrastructure/**/terraform.tfstate.backup
+infrastructure/**/*.tfvars
+!infrastructure/**/*.tfvars.example
+infrastructure/**/*.pem
+infrastructure/**/tfplan
+infrastructure/deployment-outputs.json
+
+# Ansible
+ansible/inventory/hosts
+ansible/*.retry
+infrastructure/ansible/inventory/hosts
+infrastructure/ansible/*.retry
+
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+tfplan
+
+# SSH Keys
+*.pem
+*.key
+*.ppk
+id_rsa
+id_rsa.pub
+
+# Kubernetes secrets (IMPORTANT!)
+k8s/secrets.yaml
+k8s/*-secrets.yaml
+**/secrets.yaml
+
+# AWS Credentials
+.aws/
+credentials
+config
+
+# Docker
+docker-compose.override.yml
+# .dockerignore  # Allow .dockerignore files for services
+
+# Uploads & User Data
+uploads/
+**/uploads/
+user-data.sh
+*-user-data.sh
+
+# Build artifacts
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Deployment & Infrastructure Info (contains sensitive data)
+ecr-config.json
+.deployment-info.json
+terraform.tfplan
+*.tfplan
+
+# Backup Jenkinsfile
+Jenkinsfile.dockerhub
+Jenkinsfile.ecr
+Jenkinsfile.old
+*.backup
+
+# Security scan reports
+trivy-*.json
+security-report.txt
+.scannerwork/
+sonar-scanner-*.zip
+
+# SonarQube
+.sonar/
+.scannerwork/
+
+# Database
+*.sqlite
+*.db
+
+# Lock files (optional - uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
