@@ -1,9 +1,9 @@
 # Kahoot Clone - Production-Ready Microservices Platform
 
 > ** Professional Modular Infrastructure - DEPLOYED**
-> - **Infrastructure**: `infrastructure/` - Modular Terraform + Role-based Ansible
+> - **Infrastructure**:  - Modular Terraform + Role-based Ansible
 > - **Region**: AWS us-east-1
-> - **Deploy**: `.\infrastructure\deploy.ps1 -Action all`
+> - **Deploy**: `
 > - **Status**: Jenkins Pipeline Active with GitHub Webhook Integration
 
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](https://github.com/yourusername/kahoot-clone)
@@ -1164,29 +1164,4 @@ Stage 8: Notifications
 - [K8S_CLUSTER_GUIDE.md](./docs/K8S_CLUSTER_GUIDE.md) - Kubernetes setup
 - [QUICKSTART_JENKINS.md](./QUICKSTART_JENKINS.md) - Jenkins guide
 
-## Contributing
 
-1. Fork repository
-2. Create feature branch: `git checkout -b feature/amazing`
-3. Write tests (maintain 80% coverage)
-4. Commit: `git commit -m 'feat: add feature'`
-5. Push: `git push origin feature/amazing`
-6. Create Pull Request
-
-## Next Steps (Priority 2-3)
-
-- [ ] Add integration tests (E2E with Cypress)
-- [ ] Implement auto-scaling (HPA)
-- [ ] Setup centralized logging (ELK stack)
-- [ ] Add disaster recovery plan
-- [ ] Implement load testing (k6)
-
-## Team
-
-DevOps & Full-Stack Development
-
----
-
-**Built with using Node.js, React, Kubernetes, and Production-Grade DevOps**
-
-*Test case 1
